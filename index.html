@@ -245,12 +245,21 @@ const app=document.getElementById('app');
 const pad=n=>String(n).padStart(2,'0');
 const fmtKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 
+const HAS_WS = typeof window!=='undefined' && window.storage && typeof window.storage.get==='function';
+let memStore=[];
 async function loadBookings(){
-  try{const r=await window.storage.get(STORE_KEY,true);return r&&r.value?JSON.parse(r.value):[];}
-  catch(e){return [];}
+  if(HAS_WS){
+    try{const r=await window.storage.get(STORE_KEY,true);return r&&r.value?JSON.parse(r.value):[];}catch(e){return memStore.slice();}
+  }
+  try{const v=localStorage.getItem(STORE_KEY);return v?JSON.parse(v):memStore.slice();}catch(e){return memStore.slice();}
 }
 async function saveBookings(arr){
-  try{await window.storage.set(STORE_KEY,JSON.stringify(arr),true);return true;}catch(e){return false;}
+  if(HAS_WS){
+    try{await window.storage.set(STORE_KEY,JSON.stringify(arr),true);return true;}catch(e){/* cai pro fallback */}
+  }
+  memStore=arr.slice();
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(arr));}catch(e){}
+  return true;
 }
 function isBusy(modeId,date,time){return state.bookings.some(b=>b.modeId===modeId&&b.date===date&&b.time===time);}
 
